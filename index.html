@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Catpuchino: The space of posibilities</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://use.typekit.net/bhc4gtd.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/p5@1.11.11/lib/p5.js"></script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="index.html">
+        <img src="assets/icon.png" alt="Logo" class="brand-logo" />
+      </a>
+      <button id="nav-toggle" aria-label="Toggle navigation">☰</button>
+      <nav id="site-nav" class="site-nav">
+        <a href="#interactives">Interactives</a>
+        <a href="#" onclick="openInfoPopup(event)">Information</a>
+        <a href="#about">About</a>
+      </nav>
+    </div>
+  </header>
+  <main>
+    <div id="p5-container"></div>
+    
+    <!-- Popup -->
+    <div id="info-popup" class="info-popup">
+      <div class="popup-content">
+        <button class="close-popup" onclick="closeInfoPopup()">×</button>
+        <h2>SDG 4: Education Quality</h2>
+        <p>"Children must be taught how to think, not what to think." </p>
+        <p>- Coming of Age in Samoa: A Psychological Study of Primitive Youth for Western Civilisation(1928), by Margaret Mead</p>
+      </div>
+    </div>
+    
+    <!-- Overlay for popup -->
+    <div id="popup-overlay" class="popup-overlay" onclick="closeInfoPopup()"></div>
+    
+    <!-- Content that will display on top -->
+    <section id="overlay-content" class="overlay-section">
+      <div class="content-inner">
+        <h1>SGD 4: Quality of Education</h1>
+        <p>insert quote here</p>
+      </div>
+    </section>
+  </main>
+  <script>
+    (function() {
+      const body = document.body;
+      window.addEventListener('DOMContentLoaded', () => {
+        requestAnimationFrame(() => body.classList.add('page-fade-in'));
+      });
+
+      function navigateWithFade(url) {
+        body.classList.remove('page-fade-in');
+        body.style.opacity = '0';
+        setTimeout(() => { window.location.href = url; }, 200);
+      }
+
+      const links = document.querySelectorAll('a[href$=".html"]');
+      links.forEach(link => {
+        link.addEventListener('click', (e) => {
+          const href = link.getAttribute('href');
+          if (!href || href.startsWith('#')) return;
+          e.preventDefault();
+          navigateWithFade(href);
+        });
+      });
+
+      window.navigateWithFade = navigateWithFade;
+    })();
+  </script>
+  <script src="script.js"></script>
+</body>
+</html>

@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <script src="https://cdn.jsdelivr.net/npm/p5@1.11.11/lib/p5.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/p5@1.11.11/lib/addons/p5.sound.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="style.css">
+    <link rel="stylesheet" href="https://use.typekit.net/bhc4gtd.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&display=swap" rel="stylesheet">
+    <meta charset="utf-8" />
+  </head>
+  <body>
+    <div class="sound-toggle-container">
+      <button id="sound-toggle" class="sound-toggle" onclick="toggleSound()">Sound: On</button>
+    </div>
+    <main>
+      <h1>Trang</h1>
+      <p>Content goes here.</p>
+    </main>
+    <script>
+      let isMuted = false;
+
+      function updateSoundLabel() {
+        const btn = document.getElementById('sound-toggle');
+        if (btn) btn.textContent = isMuted ? 'Sound: Off' : 'Sound: On';
+      }
+
+      function toggleSound() {
+        isMuted = !isMuted;
+        if (typeof masterVolume === 'function') {
+          masterVolume(isMuted ? 0 : 1);
+        } else if (typeof getAudioContext === 'function') {
+          const ctx = getAudioContext();
+          if (isMuted && ctx.state === 'running') ctx.suspend();
+          else if (!isMuted && ctx.state !== 'running') ctx.resume();
+        }
+        updateSoundLabel();
+      }
+
+      window.addEventListener('load', () => {
+        updateSoundLabel();
+        if (typeof getAudioContext === 'function') {
+          const ctx = getAudioContext();
+          if (ctx.state === 'suspended' && !isMuted) ctx.resume();
+        }
+      });
+    </script>
+  </body>
+</html>
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <script src="https://cdn.jsdelivr.net/npm/p5@1.11.11/lib/p5.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/p5@1.11.11/lib/addons/p5.sound.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="style.css">
+    <meta charset="utf-8" />
+
+  </head>
+  <body>
+      <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="index.html">
+        <img src="assets/icon.png" alt="Logo" class="brand-logo" />
+      </a>
+      <button id="nav-toggle" aria-label="Toggle navigation">☰</button>
+      <nav id="site-nav" class="site-nav">
+        <a href="#interactives">Interactives</a>
+        <a href="#" onclick="openInfoPopup(event)">Information</a>
+        <a href="#about">About</a>
+      </nav>
+    </div>
+  </header>
+    <div class="back-button-container">
+      <button class="back-button" onclick="navigateWithFade('index.html')">Back</button>
+    </div>
+    <main>
+    </main>
+    <script src="trangsketch.js"></script>
+      <script>
+        (function() {
+          const body = document.body;
+          window.addEventListener('DOMContentLoaded', () => {
+            requestAnimationFrame(() => body.classList.add('page-fade-in'));
+          });
+
+          function navigateWithFade(url) {
+            body.classList.remove('page-fade-in');
+            body.style.opacity = '0';
+            setTimeout(() => { window.location.href = url; }, 200);
+          }
+
+          const links = document.querySelectorAll('a[href$=".html"]');
+          links.forEach(link => {
+            link.addEventListener('click', (e) => {
+              const href = link.getAttribute('href');
+              if (!href || href.startsWith('#')) return;
+              e.preventDefault();
+              navigateWithFade(href);
+            });
+          });
+
+          window.navigateWithFade = navigateWithFade;
+        })();
+      </script>
+  </body>
+</html>

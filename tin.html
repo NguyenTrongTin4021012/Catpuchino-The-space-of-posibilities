@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <script src="https://cdn.jsdelivr.net/npm/p5@1.11.11/lib/p5.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/p5@1.11.11/lib/addons/p5.sound.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="style.css">
+    <link rel="stylesheet" href="https://use.typekit.net/bhc4gtd.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&display=swap" rel="stylesheet">
+    <meta charset="utf-8" />
+    <title>Tin - Turbulence on Catpuchino: The space of posibilities</title>
+
+  </head>
+  <body>
+      <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="index.html">
+        <img src="assets/icon.png" alt="Logo" class="brand-logo" />
+      </a>
+      <button id="nav-toggle" aria-label="Toggle navigation">☰</button>
+      <nav id="site-nav" class="site-nav">
+        <a href="index.html#interactives">Interactives</a>
+        <a href="index.html#information">Information</a>
+        <a href="index.html#about">About</a>
+      </nav>
+    </div>
+  </header>
+    <main>
+      <!-- Sound controls (require user gesture to start AudioContext) -->
+      <div class="sound-controls">
+        <button id="sound-toggle" class="sound-button" onclick="window.toggleSound && window.toggleSound()">Sound: Off</button>
+      </div>
+    </main>
+    <script src="tinsketch.js"></script>
+  </body>
+</html>
