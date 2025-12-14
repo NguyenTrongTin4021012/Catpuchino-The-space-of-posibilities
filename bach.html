@@ -3,58 +3,13 @@
   <head>
     <script src="https://cdn.jsdelivr.net/npm/p5@1.11.11/lib/p5.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/p5@1.11.11/lib/addons/p5.sound.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="style.css">
     <link rel="stylesheet" href="https://use.typekit.net/bhc4gtd.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" type="text/css" href="style.css">
     <meta charset="utf-8" />
-  </head>
-  <body>
-    <div class="sound-toggle-container">
-      <button id="sound-toggle" class="sound-toggle" onclick="toggleSound()">Sound: On</button>
-    </div>
-    <main>
-      <h1>Bach</h1>
-      <p>Content goes here.</p>
-    </main>
-    <script>
-      let isMuted = false;
-
-      function updateSoundLabel() {
-        const btn = document.getElementById('sound-toggle');
-        if (btn) btn.textContent = isMuted ? 'Sound: Off' : 'Sound: On';
-      }
-
-      function toggleSound() {
-        isMuted = !isMuted;
-        if (typeof masterVolume === 'function') {
-          masterVolume(isMuted ? 0 : 1);
-        } else if (typeof getAudioContext === 'function') {
-          const ctx = getAudioContext();
-          if (isMuted && ctx.state === 'running') ctx.suspend();
-          else if (!isMuted && ctx.state !== 'running') ctx.resume();
-        }
-        updateSoundLabel();
-      }
-
-      window.addEventListener('load', () => {
-        updateSoundLabel();
-        if (typeof getAudioContext === 'function') {
-          const ctx = getAudioContext();
-          if (ctx.state === 'suspended' && !isMuted) ctx.resume();
-        }
-      });
-    </script>
-  </body>
-</html>
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <script src="https://cdn.jsdelivr.net/npm/p5@1.11.11/lib/p5.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/p5@1.11.11/lib/addons/p5.sound.min.js"></script>
-    <link rel="stylesheet" type="text/css" href="style.css">
-    <meta charset="utf-8" />
+    <title>Tin - Turbulence on Catpuchino: The space of posibilities</title>
 
   </head>
   <body>
@@ -65,18 +20,33 @@
       </a>
       <button id="nav-toggle" aria-label="Toggle navigation">☰</button>
       <nav id="site-nav" class="site-nav">
-        <a href="#interactives">Interactives</a>
+        <a href="index.html#interactives">Interactives</a>
         <a href="#" onclick="openInfoPopup(event)">Information</a>
-        <a href="#about">About</a>
+        <a href="index.html#about">About</a>
       </nav>
     </div>
   </header>
-    <div class="back-button-container">
-      <button class="back-button" onclick="navigateWithFade('index.html')">Back</button>
-    </div>
     <main>
+      <!-- Sound controls (require user gesture to start AudioContext) -->
+      <div class="sound-controls">
+        <button id="sound-toggle" class="sound-button" onclick="window.toggleSound && window.toggleSound()">Sound: Off</button>
+      </div>
+
+      <!-- Popup (same style as index.html) -->
+      <div id="info-popup" class="info-popup">
+        <div class="popup-content">
+          <button class="close-popup" onclick="closeInfoPopup()">×</button>
+        </div>
+      </div>
+
+      <!-- Overlay for popup -->
+      <div id="popup-overlay" class="popup-overlay" onclick="closeInfoPopup()"></div>
+
+      <!-- Optional overlay content (if needed on Tin page) -->
+      <section id="overlay-content" class="overlay-section" style="display:none"></section>
     </main>
     <script>
+      // Fade navigation for .html links (same as index.html)
       (function() {
         const body = document.body;
         window.addEventListener('DOMContentLoaded', () => {
@@ -101,6 +71,22 @@
 
         window.navigateWithFade = navigateWithFade;
       })();
+
+      // Popup controls (same behavior as index.html)
+      function openInfoPopup(event) {
+        if (event) event.preventDefault();
+        const popup = document.getElementById('info-popup');
+        const overlay = document.getElementById('popup-overlay');
+        if (popup) popup.classList.add('visible');
+        if (overlay) overlay.classList.add('visible');
+      }
+
+      function closeInfoPopup() {
+        const popup = document.getElementById('info-popup');
+        const overlay = document.getElementById('popup-overlay');
+        if (popup) popup.classList.remove('visible');
+        if (overlay) overlay.classList.remove('visible');
+      }
     </script>
     <script src="bachsketch.js"></script>
   </body>
