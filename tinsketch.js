@@ -1,34 +1,47 @@
-// Visual config and core state
-let bg = "black", cl = "white", sw = 1, cr = 600; // colors, stroke, circle diameter
+// Code by Nguyen Trong Tin for Catpuchino group project
+// p5.js sketch: Turbulence
+
+// ------------------------------------------------------------
+// Visual config and state
+// ------------------------------------------------------------
+const ASSETS = {
+  ambient: 'storm.wav',
+  tone: 'track4_tone12.wav',
+  slide: 'slide.wav',
+};
+
+let bg = 'black';
+let cl = 'white';
+let sw = 1;
+let cr = 600; // boundary circle diameter
+
 let dancers = []; // orbiting circles
 let center = { x: 0, y: 0, vx: 0, vy: 0 }; // moving orbit center
-let noiseX = 0, noiseY = 0; // Perlin noise seeds for smooth chaos
+let noiseX = 0, noiseY = 0; // Perlin noise seeds
 let starBuffer; // off-screen graphics buffer for stars (render once)
-// Asset path config (edit here if files move)
-const ASSETS = {
-  ambient: 'assets/storm.wav',
-  tone: 'assets/track4_tone12.wav',
-};
+
 let canvasRadiusX = 0, canvasRadiusY = 0; // cached canvas center
-let maxBoundaryDist = 0; // boundary radius minus margin
+let maxBoundaryDist = 0; // inner boundary radius minus margin
 
 // Audio state (user-gesture gated)
-let audioStarted = false; // AudioContext resumed by user click
-let isMuted = false;      // current mute state
+let audioStarted = false;
+let isMuted = false;
 let ambient, ambientReady = false, ambientVol = 0.15; // ambient storm loop
 let tone, toneReady = false, tonePlaying = false;     // point-enter tone
+let slide, slideReady = false;                        // interaction sound
 let toneArmed = true, prevInside = false;             // trigger control
 
-// Orbiting circle
+// ------------------------------------------------------------
+// Orbiter class
+// ------------------------------------------------------------
 class Orbiter {
   constructor(orbitRadius, speed, size, startAngle) {
-    this.orbitRadius = orbitRadius; // distance from center
-    this.speed = speed;             // radians per frame
-    this.size = size;               // circle diameter
-    this.angle = startAngle;        // current angle
+    this.orbitRadius = orbitRadius;
+    this.speed = speed;
+    this.size = size;
+    this.angle = startAngle;
   }
 
-  // Draw circle at current position
   draw(centerX, centerY) {
     this.angle += this.speed;
     const x = centerX + cos(this.angle) * this.orbitRadius;
@@ -37,17 +50,29 @@ class Orbiter {
   }
 }
 
-// Setup canvas and pre-render starfield to buffer
+// ------------------------------------------------------------
+// p5 lifecycle
+// ------------------------------------------------------------
+function preload() {
+  try {
+    soundFormats('mp3', 'wav');
+    ambient = loadSound(ASSETS.ambient, () => { ambientReady = true; }, (err) => { console.warn(`Failed to load ${ASSETS.ambient}`, err); });
+    tone = loadSound(ASSETS.tone, () => { toneReady = true; }, (err) => { console.warn(`Failed to load ${ASSETS.tone}`, err); });
+    slide = loadSound(ASSETS.slide, () => { slideReady = true; }, (err) => { console.warn(`Failed to load ${ASSETS.slide}`, err); });
+  } catch (e) {
+    console.warn('Preload sound error:', e);
+  }
+}
+
 function setup() {
   createCanvas(1920, 1080);
   background(bg);
 
-  // Cache center and boundary
   canvasRadiusX = width / 2;
   canvasRadiusY = height / 2;
   maxBoundaryDist = cr / 2 - 175; // inner radius for center movement
 
-  // Pre-render starfield into buffer once
+  // Pre-render starfield
   starBuffer = createGraphics(width, height);
   starBuffer.stroke(cl);
   starBuffer.strokeWeight(1);
@@ -61,35 +86,22 @@ function setup() {
   noiseX = random(1000);
   noiseY = random(1000);
 
-  // Spawn 2-4 orbiting circles
-  const count = floor(random(2, 5));
+  // Spawn orbiting circles
+  const count = floor(random(3, 7));
   for (let i = 0; i < count; i++) {
     dancers.push(new Orbiter(
-      random(50, 200),                         // orbit radius
-      random(0.05, 0.1) * (random() > 0.5 ? 1 : -1), // speed
-      random(50, 120),                         // size
-      random(TWO_PI)                           // start angle
+      random(50, 200),
+      random(0.05, 0.15) * (random() > 0.5 ? 1 : -1),
+      random(50, 120),
+      random(TWO_PI)
     ));
   }
 }
 
-// Preload audio assets (runs before setup)
-function preload() {
-  try {
-    soundFormats('mp3', 'wav');
-    ambient = loadSound(ASSETS.ambient, () => { ambientReady = true; }, (err) => { console.warn(`Failed to load ${ASSETS.ambient}`, err); });
-    tone = loadSound(ASSETS.tone, () => { toneReady = true; }, (err) => { console.warn(`Failed to load ${ASSETS.tone}`, err); });
-  } catch (e) {
-    console.warn('Preload sound error:', e);
-  }
-}
-
-// Main animation loop - update center position, constrain to boundary, draw everything
 function draw() {
-  // Background: pre-rendered starfield
-  image(starBuffer, 0, 0); // fast blit
-  // Optional motion trails: uncomment for fade
-  // background(0, 0, 0, 35);
+  // Background: pre-rendered starfield + soft trails
+  image(starBuffer, 0, 0);
+  background(0, 0, 0, 10);
 
   // Boundary circle
   stroke(cl);
@@ -106,6 +118,7 @@ function draw() {
   center.y += center.vy;
 
   // Keep center inside inner boundary (bounce on hit)
+  //Aided partially by Copilot
   const dx = center.x - canvasRadiusX;
   const dy = center.y - canvasRadiusY;
   const distance = sqrt(dx * dx + dy * dy);
@@ -123,28 +136,24 @@ function draw() {
   fill(bg);
   for (const d of dancers) d.draw(center.x, center.y);
 
-  // Cursor-based tone trigger: play when cursor is within boundary circle
-  // Only after audio has been started by user gesture
   // Cursor-based tone trigger: play once on enter, re-arm after finish+exit
   const mx = mouseX, my = mouseY;
   if (mx >= 0 && my >= 0 && mx <= width && my <= height) {
     const mdx = mx - canvasRadiusX;
     const mdy = my - canvasRadiusY;
     const inside = sqrt(mdx * mdx + mdy * mdy) <= cr / 2;
-    // Trigger logic: play once on enter (outside -> inside), no loop
-    // Only re-arm after sound finished AND cursor left the circle
+
     if (inside && !prevInside && toneArmed && audioStarted && toneReady && tone) {
       try {
         tone.setLoop(false);
         tone.setVolume(isMuted ? 0 : 0.12);
         tone.play();
         tonePlaying = true;
-        toneArmed = false; // disarm until finished and outside
-        // On end: mark not playing; re-arm happens when outside
+        toneArmed = false;
+
         if (typeof tone.onended === 'function') {
           tone.onended(() => {
             tonePlaying = false;
-            // Re-arm only if cursor is already outside
             const nowInside = (sqrt((mouseX - canvasRadiusX) ** 2 + (mouseY - canvasRadiusY) ** 2) <= cr / 2);
             if (!nowInside) toneArmed = true;
           });
@@ -154,22 +163,36 @@ function draw() {
       }
     }
 
-    // If cursor leaves and tone isn't playing, re-arm
     if (!inside && !tonePlaying) {
       toneArmed = true;
     }
 
-    // Update previous inside/outside state
     prevInside = inside;
   }
 }
 
-// --- Sound control functions (called from tin.html buttons) ---
-// Single toggle: initialize audio on first click, then mute/unmute
+// ------------------------------------------------------------
+// Input handlers
+// ------------------------------------------------------------
+function mousePressed() {
+  if (!audioStarted || isMuted || !slideReady) return;
+  if (mouseX >= 0 && mouseX <= width && mouseY >= 0 && mouseY <= height) {
+    try {
+      if (slide && slide.isPlaying()) slide.stop();
+      slide.play();
+    } catch (e) {
+      console.error('Error playing slide sound on click:', e);
+    }
+  }
+}
+
+// ------------------------------------------------------------
+// Sound controls (bound from tin.html)
+// ------------------------------------------------------------
 window.toggleSound = function toggleSound() {
   try {
     const ctx = getAudioContext();
-    // First-time init
+
     if (!audioStarted) {
       if (ctx.state !== 'running') ctx.resume();
       if (ambientReady && ambient) {
@@ -180,17 +203,28 @@ window.toggleSound = function toggleSound() {
       audioStarted = true;
       isMuted = false;
     } else {
-      // Subsequent toggles: mute/unmute
       isMuted = !isMuted;
+
       if (isMuted) {
-        if (ambient) ambient.setVolume(0);
+        try {
+          if (ambient && ambient.isPlaying()) ambient.stop();
+          if (tone && tone.isPlaying()) tone.stop();
+          tonePlaying = false;
+          toneArmed = true;
+          if (slide && slide.isPlaying()) slide.stop();
+        } catch (e) {
+          console.warn('Error stopping sounds on mute:', e);
+        }
       } else {
         if (ctx.state !== 'running') ctx.resume();
-        if (ambient) ambient.setVolume(ambientVol);
+        if (ambientReady && ambient) {
+          ambient.setLoop(true);
+          ambient.setVolume(ambientVol);
+          if (!ambient.isPlaying()) ambient.play();
+        }
       }
     }
 
-    // Update label
     const btn = document.getElementById('sound-toggle');
     if (btn) btn.textContent = `Sound: ${audioStarted && !isMuted ? 'On' : 'Off'}`;
   } catch (e) {
