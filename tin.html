@@ -16,12 +16,12 @@
       <header class="site-header">
     <div class="container header-inner">
       <a class="brand" href="index.html">
-        <img src="assets/icon.png" alt="Logo" class="brand-logo" />
+        <img src="icon.png" alt="Logo" class="brand-logo" />
       </a>
       <button id="nav-toggle" aria-label="Toggle navigation">☰</button>
       <nav id="site-nav" class="site-nav">
         <a href="index.html#interactives">Interactives</a>
-        <a href="index.html#information">Information</a>
+        <a href="#" onclick="openInfoPopup(event)">Information</a>
         <a href="index.html#about">About</a>
       </nav>
     </div>
@@ -31,7 +31,66 @@
       <div class="sound-controls">
         <button id="sound-toggle" class="sound-button" onclick="window.toggleSound && window.toggleSound()">Sound: Off</button>
       </div>
+
+      <!-- Popup (same style as index.html) -->
+      <div id="info-popup" class="info-popup">
+        <div class="popup-content">
+          <button class="close-popup" onclick="closeInfoPopup()">×</button>
+          <h2>Turbulence</h2>
+          <p>The project is based on my personal experience during school years: aimless, unguided and unaccommodated.</p>
+          <p>The Turbulence supposed to evoke the feelings with how chaotic it looks and moves.</p>
+        </div>
+      </div>
+
+      <!-- Overlay for popup -->
+      <div id="popup-overlay" class="popup-overlay" onclick="closeInfoPopup()"></div>
+
+      <!-- Optional overlay content (if needed on Tin page) -->
+      <section id="overlay-content" class="overlay-section" style="display:none"></section>
     </main>
+    <script>
+      // Fade navigation for .html links (same as index.html)
+      (function() {
+        const body = document.body;
+        window.addEventListener('DOMContentLoaded', () => {
+          requestAnimationFrame(() => body.classList.add('page-fade-in'));
+        });
+
+        function navigateWithFade(url) {
+          body.classList.remove('page-fade-in');
+          body.style.opacity = '0';
+          setTimeout(() => { window.location.href = url; }, 200);
+        }
+
+        const links = document.querySelectorAll('a[href$=".html"]');
+        links.forEach(link => {
+          link.addEventListener('click', (e) => {
+            const href = link.getAttribute('href');
+            if (!href || href.startsWith('#')) return;
+            e.preventDefault();
+            navigateWithFade(href);
+          });
+        });
+
+        window.navigateWithFade = navigateWithFade;
+      })();
+
+      // Popup controls (same behavior as index.html)
+      function openInfoPopup(event) {
+        if (event) event.preventDefault();
+        const popup = document.getElementById('info-popup');
+        const overlay = document.getElementById('popup-overlay');
+        if (popup) popup.classList.add('visible');
+        if (overlay) overlay.classList.add('visible');
+      }
+
+      function closeInfoPopup() {
+        const popup = document.getElementById('info-popup');
+        const overlay = document.getElementById('popup-overlay');
+        if (popup) popup.classList.remove('visible');
+        if (overlay) overlay.classList.remove('visible');
+      }
+    </script>
     <script src="tinsketch.js"></script>
   </body>
 </html>
