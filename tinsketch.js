@@ -5,9 +5,9 @@
 // Visual config and state
 // ------------------------------------------------------------
 const ASSETS = {
-  ambient: 'storm.wav',
-  tone: 'track4_tone12.wav',
-  slide: 'slide.wav',
+  ambient: 'assets/storm.wav',
+  tone: 'assets/track4_tone12.wav',
+  slide: 'assets/slide.wav',
 };
 
 let bg = 'black';
