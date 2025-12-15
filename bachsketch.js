@@ -98,8 +98,8 @@ function listOfRings() {
 
 function preload(){
   soundFormats('wav','mp3');
-  planetAmbience = loadSound('space ambience.wav');
-  ringsAmbience = loadSound('rings moving.wav')
+  planetAmbience = loadSound('space_ambience.wav');
+  ringsAmbience = loadSound('rings_moving.wav')
 }
 //Set-ups
 function setup() {
