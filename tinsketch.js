@@ -5,9 +5,9 @@
 // Visual config and state
 // ------------------------------------------------------------
 const ASSETS = {
-  ambient: 'assets/storm.wav',
-  tone: 'assets/track4_tone12.wav',
-  slide: 'assets/slide.wav',
+  ambient: 'storm.wav',
+  tone: 'track4_tone12.wav',
+  slide: 'slide.wav',
 };
 
 let bg = 'black';
@@ -230,4 +230,5 @@ window.toggleSound = function toggleSound() {
   } catch (e) {
     console.warn('Sound toggle failed:', e);
   }
+
 };
