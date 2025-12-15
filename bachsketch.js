@@ -7,8 +7,12 @@ let stars = []; // list for the stars
 let ringArcs = []; // list for the ring's
 
 // this is for a smoother transition between rings, call this variable as the Start and the Continue of the rings for timing and limiting the rings to spawn
-let ringStart = 5; // how many frames between spawns (adjust as you like)
-let ringContinue = 0;
+let ringStart = 5; // 5frame to start a new frame
+let ringContinue = 0; // spawn new ring at frame 0
+
+//sound set ups
+let planetAmbience;
+let ringsAmbience;
 
 //Nebula and starry background
 // using loops of points to create different stars patterns background everytime being refreshed
@@ -49,7 +53,7 @@ class Rings {
   isDead() {
     return this.alpha <= 0; // this function is to check if the result of the alpha of the rings = 0.
   }
-  // set up for the draw() function
+  // set up for the draw() to rendering the rings and arc. 
   draw() {
     if (this.alpha <= 0) return;
 
@@ -89,6 +93,14 @@ function listOfRings() {
   }
 }
 
+
+// Sound setting up
+
+function preload(){
+  soundFormats('wav','mp3');
+  planetAmbience = loadSound('space ambience.wav');
+  ringsAmbience = loadSound('rings moving.wav')
+}
 //Set-ups
 function setup() {
   createCanvas(1900, 1080);
@@ -102,23 +114,41 @@ function setup() {
   }
 
   listOfRings();
+  
+
+  planetAmbience.setVolume(1);
+  ringsAmbience.setVolume(1);
+  
+}
+
+function mousePressed() {
+  // If NOT playing yet → start both in loop
+  if (!planetAmbience.isPlaying() && !ringsAmbience.isPlaying()) {
+    planetAmbience.loop();
+    ringsAmbience.loop();
+  } else {
+    // If already playing → stop both
+    planetAmbience.stop();
+    ringsAmbience.stop();
+  }
 }
 
 //Draw
 function draw() {
   background(0);
   nebula(0);
-
+  //  the planet
   fill("black");
   ellipse(950, 540, 500, 500);
   stroke(6);
 
   // spawn new rings every ringStart frames
-  if (frameCount - ringContinue >= ringStart) {
+  if (frameCount - ringContinue >= ringStart) { //this part controls the animation, how often does a new rings appears. This arguement tell us that how much frame should be past by to make a new ring appear. 
     listOfRings();
     ringContinue = frameCount;
   }
 
+  //Every time the rings are drawn and animated, It will call the update function from class to update and draw a new batch again
   ringArcs.forEach((arcObj) => {
     arcObj.update();
     arcObj.draw();
