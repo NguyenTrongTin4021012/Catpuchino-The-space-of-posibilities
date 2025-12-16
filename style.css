@@ -181,7 +181,8 @@ a  {
   transition: top 0.5s ease-out;
 }
 
-.info-popup.show {
+.info-popup.show,
+.info-popup.visible {
   top: 50%;
   transform: translate(-50%, -50%);
 }
@@ -192,7 +193,7 @@ a  {
 }
 
 .popup-content h2 {
-  color: var(--ac);
+  color: var(--cl);
   margin-top: 0;
   font-family: 'Orbitron', sans-serif;
 }
@@ -239,7 +240,8 @@ a  {
   pointer-events: none;
 }
 
-.popup-overlay.show {
+.popup-overlay.show,
+.popup-overlay.visible {
   background: rgba(0, 0, 0, 0.7);
   pointer-events: auto;
 }

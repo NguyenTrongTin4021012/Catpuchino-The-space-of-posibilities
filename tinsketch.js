@@ -53,12 +53,52 @@ class Orbiter {
 // ------------------------------------------------------------
 // p5 lifecycle
 // ------------------------------------------------------------
+// Helper: try multiple URL variants until one loads
+function loadSoundWithFallback(paths, onSuccess, onAllFail) {
+  let i = 0;
+  const tryNext = () => {
+    if (i >= paths.length) {
+      if (onAllFail) onAllFail(new Error('All paths failed: ' + paths.join(', ')));
+      return;
+    }
+    const url = paths[i++];
+    loadSound(
+      url,
+      (snd) => { if (onSuccess) onSuccess(snd, url); },
+      (err) => { console.warn(`Failed to load ${url}`, err); tryNext(); }
+    );
+  };
+  tryNext();
+}
+
+// Build root/assets variants for a given relative path
+function pathVariants(rel) {
+  const hasAssets = /^assets\//.test(rel);
+  const root = hasAssets ? rel.replace(/^assets\//, '') : rel;
+  const assets = hasAssets ? rel : `assets/${root}`;
+  // De-duplicate while preserving order (prefer declared path first)
+  const declaredFirst = rel === assets ? [assets, root] : [root, assets];
+  return declaredFirst.filter((v, idx, arr) => arr.indexOf(v) === idx);
+}
+
 function preload() {
   try {
     soundFormats('mp3', 'wav');
-    ambient = loadSound(ASSETS.ambient, () => { ambientReady = true; }, (err) => { console.warn(`Failed to load ${ASSETS.ambient}`, err); });
-    tone = loadSound(ASSETS.tone, () => { toneReady = true; }, (err) => { console.warn(`Failed to load ${ASSETS.tone}`, err); });
-    slide = loadSound(ASSETS.slide, () => { slideReady = true; }, (err) => { console.warn(`Failed to load ${ASSETS.slide}`, err); });
+    loadSoundWithFallback(
+      pathVariants(ASSETS.ambient),
+      (snd) => { ambient = snd; ambientReady = true; },
+      (err) => { console.warn('Ambient load failed (all variants):', err); }
+    );
+    loadSoundWithFallback(
+      pathVariants(ASSETS.tone),
+      (snd) => { tone = snd; toneReady = true; },
+      (err) => { console.warn('Tone load failed (all variants):', err); }
+    );
+    loadSoundWithFallback(
+      pathVariants(ASSETS.slide),
+      (snd) => { slide = snd; slideReady = true; },
+      (err) => { console.warn('Slide load failed (all variants):', err); }
+    );
   } catch (e) {
     console.warn('Preload sound error:', e);
   }
@@ -230,5 +270,4 @@ window.toggleSound = function toggleSound() {
   } catch (e) {
     console.warn('Sound toggle failed:', e);
   }
-
 };
