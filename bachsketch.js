@@ -14,6 +14,39 @@ let ringContinue = 0; // spawn new ring at frame 0
 let planetAmbience;
 let ringsAmbience;
 
+// Audio state (user-gesture gated)
+let audioStarted = false;
+let isMuted = false;
+let planetReady = false;
+let ringsReady = false;
+
+// Helper: try multiple URL variants until one loads
+function loadSoundWithFallback(paths, onSuccess, onAllFail) {
+  let i = 0;
+  const tryNext = () => {
+    if (i >= paths.length) {
+      if (onAllFail) onAllFail(new Error('All paths failed: ' + paths.join(', ')));
+      return;
+    }
+    const url = paths[i++];
+    loadSound(
+      url,
+      (snd) => { if (onSuccess) onSuccess(snd, url); },
+      (err) => { console.warn(`Failed to load ${url}`, err); tryNext(); }
+    );
+  };
+  tryNext();
+}
+
+// Build root/assets variants for a given relative path
+function pathVariants(rel) {
+  const hasAssets = /^assets\//.test(rel);
+  const root = hasAssets ? rel.replace(/^assets\//, '') : rel;
+  const assets = hasAssets ? rel : `assets/${root}`;
+  const declaredFirst = rel === assets ? [assets, root] : [root, assets];
+  return declaredFirst.filter((v, idx, arr) => arr.indexOf(v) === idx);
+}
+
 //Nebula and starry background
 // using loops of points to create different stars patterns background everytime being refreshed
 function nebula(count) {
@@ -98,8 +131,16 @@ function listOfRings() {
 
 function preload(){
   soundFormats('wav','mp3');
-  planetAmbience = loadSound('space_ambience.wav');
-  ringsAmbience = loadSound('rings_moving.wav')
+  loadSoundWithFallback(
+    pathVariants('space_ambience.wav'),
+    (snd) => { planetAmbience = snd; planetReady = true; },
+    (err) => { console.warn('planetAmbience load failed (all variants):', err); }
+  );
+  loadSoundWithFallback(
+    pathVariants('rings_moving.wav'),
+    (snd) => { ringsAmbience = snd; ringsReady = true; },
+    (err) => { console.warn('ringsAmbience load failed (all variants):', err); }
+  );
 }
 //Set-ups
 function setup() {
@@ -116,12 +157,14 @@ function setup() {
   listOfRings();
   
 
-  planetAmbience.setVolume(1);
-  ringsAmbience.setVolume(1);
+  if (planetAmbience) planetAmbience.setVolume(1);
+  if (ringsAmbience) ringsAmbience.setVolume(1);
   
 }
 
 function mousePressed() {
+  if (!audioStarted || isMuted) return;
+  if (!planetReady || !ringsReady || !planetAmbience || !ringsAmbience) return;
   // If NOT playing yet → start both in loop
   if (!planetAmbience.isPlaying() && !ringsAmbience.isPlaying()) {
     planetAmbience.loop();
@@ -163,3 +206,47 @@ function draw() {
   strokeWeight(2); // adjust if you want a thicker border
   arc(950, 540, 500, 500, PI, TWO_PI);
 }
+
+// ------------------------------------------------------------
+// Sound controls (bound from HTML sound toggle)
+// ------------------------------------------------------------
+window.toggleSound = function toggleSound() {
+  try {
+    const ctx = getAudioContext();
+
+    if (!audioStarted) {
+      if (ctx.state !== 'running') ctx.resume();
+      audioStarted = true;
+      isMuted = false;
+    } else {
+      isMuted = !isMuted;
+
+      if (isMuted) {
+        try {
+          if (planetAmbience && planetAmbience.isPlaying()) planetAmbience.stop();
+          if (ringsAmbience && ringsAmbience.isPlaying()) ringsAmbience.stop();
+        } catch (e) {
+          console.warn('Error stopping sounds on mute:', e);
+        }
+      } else {
+        if (ctx.state !== 'running') ctx.resume();
+        // Optionally restart ambient loops when unmuting
+        if (planetReady && planetAmbience && !planetAmbience.isPlaying()) {
+          planetAmbience.setLoop(true);
+          planetAmbience.setVolume(1);
+          planetAmbience.play();
+        }
+        if (ringsReady && ringsAmbience && !ringsAmbience.isPlaying()) {
+          ringsAmbience.setLoop(true);
+          ringsAmbience.setVolume(1);
+          ringsAmbience.play();
+        }
+      }
+    }
+
+    const btn = document.getElementById('sound-toggle');
+    if (btn) btn.textContent = `Sound: ${audioStarted && !isMuted ? 'On' : 'Off'}`;
+  } catch (e) {
+    console.warn('Sound toggle failed:', e);
+  }
+};
