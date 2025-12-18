@@ -1,9 +1,15 @@
+const NUM_STARS = 2000;
+
 let bg = '#000', cl = '#fff', ac = "#ffff00";
 let dots = [];
 let stars = []; // Store star positions
 let fadeOut = 0; // 0 to 1, for fade-out transition
 let isTransitioning = false;
 let selectedDotIndex = -1;
+let clickSound;
+let slideSound;
+let ambienceSound;
+let ambienceStarted = false;
 
 const pageMap = {
   0: 'trang.html',
@@ -71,20 +77,50 @@ function setup() {
   stroke(cl);
   strokeWeight(2);
   
-  // Generate stars ONCE and store them
-  for (let i = 0; i < 1000; i++) {
-    stars.push({
-      x: random(w),
-      y: random(h)
-    });
-  }
+  // Generate stars with brightness and size based on distance from center
+  initStars();
 
   dots = [
-    new Dot(w * 0.2, h * 0.4, '1.Trang'),
-    new Dot(w * 0.4, h * 0.6, '2.Bach'),
-    new Dot(w * 0.6, h * 0.7, '3.Khoa'),
-    new Dot(w * 0.75, h * 0.3, '4.Tin')
+    new Dot(w * 0.2, h * 0.4, '1.Planetary Soroban'),
+    new Dot(w * 0.4, h * 0.6, '2.Disrupted Saturn'),
+    new Dot(w * 0.6, h * 0.7, '3.The Sun'),
+    new Dot(w * 0.75, h * 0.3, '4.Turburlence')
   ];
+}
+
+// ======================
+// STARS
+// ======================
+function initStars() {
+  let centerX = width / 2;
+  let centerY = height / 2;
+
+  let maxDistance = dist(0, 0, centerX, centerY);
+
+  for (let i = 0; i < NUM_STARS; i++) {
+    let x = random(width);
+    let y = random(height);
+
+    // Brighter and bigger when near the center  
+    let distanceToCenter = dist(x, y, centerX, centerY);
+    let brightness = map(distanceToCenter, 0, maxDistance, 255, 80);
+    let size = map(distanceToCenter, 0, maxDistance, 2.2, 0.5);
+
+    stars.push({
+      x: x,
+      y: y,
+      b: brightness * random(0.6, 1.1),
+      s: size * random(0.6, 1.3)
+    });
+  }
+}
+
+function drawStars() {
+  stars.forEach(function(star) {
+    stroke(star.b);
+    strokeWeight(star.s);
+    point(star.x, star.y);
+  });
 }
 
 let lineProgress = 0;
@@ -125,10 +161,8 @@ function draw() {
   stroke(cl);
   strokeWeight(2);
   
-  // Draw stored stars
-  for (let star of stars) {
-    point(star.x, star.y);
-  }
+  // Draw stars with brightness and size variation
+  drawStars();
 
   drawConnectingLines();
 
@@ -188,12 +222,33 @@ function windowResized() {
 // Handle dot clicks to trigger page transition
 function mousePressed() {
   if (isTransitioning) return; // Prevent multiple clicks during transition
+
+  // Play global click sound on any click
+  if (clickSound && clickSound.isLoaded()) {
+    try {
+      if (clickSound.isPlaying()) clickSound.stop();
+      clickSound.setVolume(0.8);
+      clickSound.play();
+    } catch (e) {
+      console.warn('Click sound play failed:', e);
+    }
+  }
   
   for (let i = 0; i < dots.length; i++) {
     if (dots[i].isClicked(mouseX, mouseY)) {
 // Popup functions
 // Open the information popup and overlay
       console.log(`Clicked: ${dots[i].label}`);
+      // Play slide sound for interactable area
+      if (slideSound && slideSound.isLoaded()) {
+        try {
+          if (slideSound.isPlaying()) slideSound.stop();
+          slideSound.setVolume(0.8);
+          slideSound.play();
+        } catch (e) {
+          console.warn('Slide sound play failed:', e);
+        }
+      }
       isTransitioning = true;
       selectedDotIndex = i;
       break;
@@ -217,3 +272,26 @@ function closeInfoPopup() {
   popup.classList.remove('show');
   overlay.classList.remove('show');
 }
+
+function preload() {
+  soundFormats('mp3', 'wav');
+  clickSound = loadSound('blipSelect2.mp3');
+  slideSound = loadSound('slide.mp3');
+  ambienceSound = loadSound('ambience.mp3');
+}
+
+// Play ambience when mouse enters viewport
+document.addEventListener('mouseenter', function() {
+  if (!ambienceStarted && ambienceSound && ambienceSound.isLoaded()) {
+    try {
+      const ctx = getAudioContext();
+      if (ctx.state !== 'running') ctx.resume();
+      
+      ambienceSound.setVolume(0.4);
+      ambienceSound.loop();
+      ambienceStarted = true;
+    } catch (e) {
+      console.warn('Failed to start ambience:', e);
+    }
+  }
+}, { once: true });

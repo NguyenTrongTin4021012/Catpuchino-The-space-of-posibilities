@@ -11,7 +11,17 @@ html, body {
   padding: 0;
   background: var(--bg);
   color: var(--cl);
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  overflow: hidden; /* prevent scrolling and remove space */
+}
+
+body {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  grid-template-rows: repeat(10, 1fr);
+  gap: 20px;
+  min-height: 100vh;
+  padding: 20px;
+  padding-top: 80px;
 }
 
 /*typography */
@@ -35,7 +45,7 @@ p {
   font-weight: 300;
   font-style: normal;
   font-size: 1rem;
-  line-height: 1.5;
+  line-height: 1;
 }
 
 a  {
@@ -44,26 +54,30 @@ a  {
   font-weight: 300;
   font-style: normal;
   font-size: 1rem;
-  line-height: 1.5;
+  line-height: 1;
 }
 
 /* Header */
 .site-header {
-  background: var(--bg);
+  background: transparent;
   border-bottom: 1px solid var(--bg);
-  padding: 1rem 0;
-  position: sticky;
+  padding: 1rem 20px; /* match body side padding to align with grid */
+  position: fixed;
   top: 0;
+  left: 0;
+  right: 0;
   z-index: 100;
+  width: 100%;
 }
 
 .header-inner {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 2rem;
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: repeat(14, 1fr);
   align-items: center;
+  gap: 1rem;
+  width: 100%;
+  padding: 0; /* avoid double horizontal padding; use header padding instead */
+  height: 60px;
 }
 
 .brand {
@@ -72,6 +86,7 @@ a  {
   display: inline-flex;
   align-items: center;
   min-width: 120px; /* reserve space so layout doesn't shift */
+  grid-column: 1 / 2; /* first column */
 }
 
 /* Ensure logo image keeps a consistent size and doesn't reflow */
@@ -81,14 +96,49 @@ a  {
   display: block;
 }
 
+.site-nav {
+  grid-column: 10 / 13; /* desktop override below will place items directly */
+  display: flex;
+  justify-content: flex-end;
+  gap: 2rem;
+  align-items: center;
+  height: 100%;
+}
+
 .site-nav a {
   color: var(--cl);
   text-decoration: none;
-  margin-left: 2rem;
+  display: flex;
+  align-items: center;
+  height: 100%;
 }
 
 .site-nav a:hover {
   color: var(--ac);
+}
+
+/* Desktop: make nav items align to header grid columns 10, 11, 12 */
+@media (min-width: 821px) {
+  .site-nav {
+    display: contents; /* let child links become grid items of header-inner */
+  }
+  .site-nav a {
+    display: flex;
+    align-items: center;
+    height: 60px; /* match header-inner height */
+  }
+  .site-nav a:nth-child(1) {
+    grid-column: 10 / 11;
+    justify-self: end;
+  }
+  .site-nav a:nth-child(2) {
+    grid-column: 12 / 13; /* leave one empty column between 1 and 2 */
+    justify-self: center;
+  }
+  .site-nav a:nth-child(3) {
+    grid-column: 14 / 15; /* leave one empty column between 2 and 3 */
+    justify-self: start;
+  }
 }
 
 #nav-toggle {
@@ -103,6 +153,9 @@ a  {
 @media (max-width: 820px) {
   #nav-toggle {
     display: block;
+    grid-column: 14 / 15; /* place at the far-right grid column */
+    justify-self: end;
+    align-self: center;
   }
 
   .site-nav {
@@ -151,17 +204,20 @@ a  {
   bottom: 0;
   left: 0;
   right: 0;
-  background: rgba(0, 0, 0, 0);
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 1rem;
+  background: transparent;
   color: var(--cl);
-  padding: 2rem;
+  padding: 2rem 20px; /* align to header/body side padding */
   z-index: 10;
   max-height: 40vh;
   overflow-y: auto;
 }
 
 .content-inner {
+  grid-column: 1 / 15; /* leave one column on the left, align with header grid */
   max-width: 1200px;
-  margin: 0 auto;
 }
 
 /* Info Popup Modal */

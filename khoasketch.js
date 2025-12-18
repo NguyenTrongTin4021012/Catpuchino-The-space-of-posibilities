@@ -7,57 +7,18 @@ let sfx4;
 let sfx5;
 let sfx6;
 
-// Audio state (user-gesture gated)
+// NEW: audio sequence control
+let sfxList = [];
+let sfxIndex = 0;
+let isPlaying = false;
 let audioStarted = false;
 let isMuted = false;
-let sfx4Ready = false;
-let sfx5Ready = false;
-let sfx6Ready = false;
-
-// Helper: try multiple URL variants until one loads
-function loadSoundWithFallback(paths, onSuccess, onAllFail) {
-  let i = 0;
-  const tryNext = () => {
-    if (i >= paths.length) {
-      if (onAllFail) onAllFail(new Error('All paths failed: ' + paths.join(', ')));
-      return;
-    }
-    const url = paths[i++];
-    loadSound(
-      url,
-      (snd) => { if (onSuccess) onSuccess(snd, url); },
-      (err) => { console.warn(`Failed to load ${url}`, err); tryNext(); }
-    );
-  };
-  tryNext();
-}
-
-// Build root/assets variants for a given relative path
-function pathVariants(rel) {
-  const hasAssets = /^assets\//.test(rel);
-  const root = hasAssets ? rel.replace(/^assets\//, '') : rel;
-  const assets = hasAssets ? rel : `assets/${root}`;
-  const declaredFirst = rel === assets ? [assets, root] : [root, assets];
-  return declaredFirst.filter((v, idx, arr) => arr.indexOf(v) === idx);
-}
 
 function preload() {
   soundFormats('mp3');
-  loadSoundWithFallback(
-    pathVariants('sfx4.mp3'),
-    (snd) => { sfx4 = snd; sfx4Ready = true; },
-    (err) => { console.warn('sfx4 load failed (all variants):', err); }
-  );
-  loadSoundWithFallback(
-    pathVariants('sfx5.mp3'),
-    (snd) => { sfx5 = snd; sfx5Ready = true; },
-    (err) => { console.warn('sfx5 load failed (all variants):', err); }
-  );
-  loadSoundWithFallback(
-    pathVariants('sfx6.mp3'),
-    (snd) => { sfx6 = snd; sfx6Ready = true; },
-    (err) => { console.warn('sfx6 load failed (all variants):', err); }
-  );
+  sfx4 = loadSound('sfx4.mp3');
+  sfx5 = loadSound('sfx5.mp3');
+  sfx6 = loadSound('sfx6.mp3');
 }
 
 function setup() {
@@ -73,6 +34,9 @@ function setup() {
   }
 
   numQuads = int(random(80, 150)); // how much light rays
+
+  // NEW: list of sounds for looping playback
+  sfxList = [sfx4, sfx5, sfx6];
 }
 
 function draw() {
@@ -136,38 +100,50 @@ function draw() {
 
   push();
   stroke(255);
-  strokeWeight(2.5); // line thickness
+  strokeWeight(2); // line thickness
   fill(0);
   ellipse(width / 2, height / 2, 500, 500); // size of the middle circle, might need change as needed
   pop();
 }
 
-function mousePressed() {
-  if (!audioStarted || isMuted || !sfx5Ready || !sfx5) return;
-  try {
-    if (sfx5.isPlaying()) sfx5.stop();
-    sfx5.play();
-  } catch (e) {
-    console.warn('Error playing sfx5:', e);
-  }
+// sound stuff
+function playNextSound() {
+  if (!isPlaying) return;
+
+  let current = sfxList[sfxIndex];
+  current.play();
+
+  current.onended(() => {
+    if (!isPlaying) return;
+
+    sfxIndex++;
+    if (sfxIndex >= sfxList.length) {
+      sfxIndex = 0;
+    }
+
+    playNextSound();
+  });
 }
 
-function keyPressed() {
-  if (key === ' ') {
-    if (!audioStarted || isMuted || !sfx6Ready || !sfx6) return;
-    try {
-      if (sfx6.isPlaying()) sfx6.stop();
-      sfx6.play();
-    } catch (e) {
-      console.warn('Error playing sfx6:', e);
-    }
-  } else if (keyCode === CONTROL) {
-    if (!audioStarted || isMuted || !sfx4Ready || !sfx4) return;
-    try {
-      if (sfx4.isPlaying()) sfx4.stop();
-      sfx4.play();
-    } catch (e) {
-      console.warn('Error playing sfx4:', e);
+function mousePressed() {
+  // left click to toggle sound playback
+  if (!audioStarted) {
+    // First click enables audio
+    const ctx = getAudioContext();
+    if (ctx.state !== 'running') ctx.resume();
+    audioStarted = true;
+  }
+
+  if (!isMuted) {
+    if (!isPlaying) {
+      isPlaying = true;
+      sfxIndex = 0;
+      playNextSound();
+    } else {
+      isPlaying = false;
+      for (let s of sfxList) {
+        s.stop();
+      }
     }
   }
 }
@@ -180,22 +156,33 @@ window.toggleSound = function toggleSound() {
     const ctx = getAudioContext();
 
     if (!audioStarted) {
+      // First time: enable audio and start playback
       if (ctx.state !== 'running') ctx.resume();
       audioStarted = true;
       isMuted = false;
+      isPlaying = true;
+      sfxIndex = 0;
+      playNextSound();
     } else {
+      // Toggle mute state
       isMuted = !isMuted;
 
       if (isMuted) {
+        // Mute: stop all sounds and pause sequence
+        isPlaying = false;
         try {
-          if (sfx4 && sfx4.isPlaying()) sfx4.stop();
-          if (sfx5 && sfx5.isPlaying()) sfx5.stop();
-          if (sfx6 && sfx6.isPlaying()) sfx6.stop();
+          for (let s of sfxList) {
+            if (s && s.isPlaying()) s.stop();
+          }
         } catch (e) {
           console.warn('Error stopping sounds on mute:', e);
         }
       } else {
+        // Unmute: resume playback
         if (ctx.state !== 'running') ctx.resume();
+        isPlaying = true;
+        sfxIndex = 0;
+        playNextSound();
       }
     }
 

@@ -7,45 +7,18 @@ let stars = []; // list for the stars
 let ringArcs = []; // list for the ring's
 
 // this is for a smoother transition between rings, call this variable as the Start and the Continue of the rings for timing and limiting the rings to spawn
-let ringStart = 5; // 5frame to start a new frame
-let ringContinue = 0; // spawn new ring at frame 0
+let ringStart = 0; // frame to start a new frame
+let ringContinue = 10; // spawn new ring at frame 10
 
 //sound set ups
 let planetAmbience;
 let ringsAmbience;
-
-// Audio state (user-gesture gated)
+let saturnSound = [];   // array of 3 atmosphere sounds
+let currentSound = null; // null is an empty slot. 
 let audioStarted = false;
 let isMuted = false;
 let planetReady = false;
 let ringsReady = false;
-
-// Helper: try multiple URL variants until one loads
-function loadSoundWithFallback(paths, onSuccess, onAllFail) {
-  let i = 0;
-  const tryNext = () => {
-    if (i >= paths.length) {
-      if (onAllFail) onAllFail(new Error('All paths failed: ' + paths.join(', ')));
-      return;
-    }
-    const url = paths[i++];
-    loadSound(
-      url,
-      (snd) => { if (onSuccess) onSuccess(snd, url); },
-      (err) => { console.warn(`Failed to load ${url}`, err); tryNext(); }
-    );
-  };
-  tryNext();
-}
-
-// Build root/assets variants for a given relative path
-function pathVariants(rel) {
-  const hasAssets = /^assets\//.test(rel);
-  const root = hasAssets ? rel.replace(/^assets\//, '') : rel;
-  const assets = hasAssets ? rel : `assets/${root}`;
-  const declaredFirst = rel === assets ? [assets, root] : [root, assets];
-  return declaredFirst.filter((v, idx, arr) => arr.indexOf(v) === idx);
-}
 
 //Nebula and starry background
 // using loops of points to create different stars patterns background everytime being refreshed
@@ -131,17 +104,14 @@ function listOfRings() {
 
 function preload(){
   soundFormats('wav','mp3');
-  loadSoundWithFallback(
-    pathVariants('space_ambience.wav'),
-    (snd) => { planetAmbience = snd; planetReady = true; },
-    (err) => { console.warn('planetAmbience load failed (all variants):', err); }
-  );
-  loadSoundWithFallback(
-    pathVariants('rings_moving.wav'),
-    (snd) => { ringsAmbience = snd; ringsReady = true; },
-    (err) => { console.warn('ringsAmbience load failed (all variants):', err); }
-  );
+  planetAmbience = loadSound('Ambience.mp3', () => { planetReady = true; });
+  ringsAmbience  = loadSound('saturn-orbiting.mp3', () => { ringsReady = true; });
+  
+  saturnSound[0] = loadSound("planet's atmosphere.mp3");
+  saturnSound[1] = loadSound("saturn's atmosphere-2.mp3");
+  saturnSound[2] = loadSound("Saturn's atmosphere-3.mp3");
 }
+
 //Set-ups
 function setup() {
   createCanvas(1900, 1080);
@@ -156,25 +126,84 @@ function setup() {
 
   listOfRings();
   
-
-  if (planetAmbience) planetAmbience.setVolume(1);
-  if (ringsAmbience) ringsAmbience.setVolume(1);
+  planetAmbience.setVolume(1);
+  ringsAmbience.setVolume(1);
   
-}
-
-function mousePressed() {
-  if (!audioStarted || isMuted) return;
-  if (!planetReady || !ringsReady || !planetAmbience || !ringsAmbience) return;
-  // If NOT playing yet → start both in loop
-  if (!planetAmbience.isPlaying() && !ringsAmbience.isPlaying()) {
-    planetAmbience.loop();
-    ringsAmbience.loop();
-  } else {
-    // If already playing → stop both
-    planetAmbience.stop();
-    ringsAmbience.stop();
+  // optional: set all saturn sounds a bit lower if needed
+  for (let i = 0; i < saturnSound.length; i++) {
+    saturnSound[i].setVolume(1);
   }
 }
+
+// adding thundering atmosphere sfx to the background using if statement with length
+function playRandomAtmosphere() {
+  if (saturnSound.length === 0) return;
+
+  let idx = int(random(saturnSound.length));
+  let sfx = saturnSound[idx];
+
+  currentSound = sfx;   // remember which one is playing
+  sfx.setVolume(1);
+  sfx.play();
+
+  sfx.onended(() => {
+    // as long as the main ambience is still playing, keep cycling
+    if (planetAmbience && planetAmbience.isPlaying()) {
+      playRandomAtmosphere();
+    } else {
+      currentSound = null;
+    }
+  });
+}
+
+function stopAllAtmosphere() {
+  if (currentSound && currentSound.isPlaying()) {
+    currentSound.stop();
+  }
+  currentSound = null;
+
+  saturnSound.forEach(s => {
+    if (s.isPlaying()) s.stop();
+  });
+}
+
+function startAllAmbience() {
+  if (!planetAmbience || !ringsAmbience) return;
+  planetAmbience.setLoop(true);
+  ringsAmbience.setLoop(true);
+  planetAmbience.setVolume(1);
+  ringsAmbience.setVolume(1);
+  planetAmbience.play();
+  ringsAmbience.play();
+  playRandomAtmosphere();
+  audioStarted = true;
+  isMuted = false;
+  updateSoundButton();
+}
+
+function stopAllAmbience() {
+  if (planetAmbience && planetAmbience.isPlaying()) planetAmbience.stop();
+  if (ringsAmbience && ringsAmbience.isPlaying()) ringsAmbience.stop();
+  stopAllAtmosphere();
+  isMuted = true;
+  updateSoundButton();
+}
+
+function updateSoundButton() {
+  const btn = document.getElementById('sound-toggle');
+  if (btn) btn.textContent = `Sound: ${audioStarted && !isMuted ? 'On' : 'Off'}`;
+}
+
+
+function mousePressed() {
+  // If NOT playing yet → start both ambiences + random Saturn atmosphere loop
+  if (!planetAmbience.isPlaying() && !ringsAmbience.isPlaying()) {
+    startAllAmbience();
+  } else {
+    stopAllAmbience();
+  }
+}
+
 
 //Draw
 function draw() {
@@ -214,38 +243,15 @@ window.toggleSound = function toggleSound() {
   try {
     const ctx = getAudioContext();
 
-    if (!audioStarted) {
-      if (ctx.state !== 'running') ctx.resume();
-      audioStarted = true;
-      isMuted = false;
-    } else {
-      isMuted = !isMuted;
+    if (ctx.state !== 'running') ctx.resume();
 
-      if (isMuted) {
-        try {
-          if (planetAmbience && planetAmbience.isPlaying()) planetAmbience.stop();
-          if (ringsAmbience && ringsAmbience.isPlaying()) ringsAmbience.stop();
-        } catch (e) {
-          console.warn('Error stopping sounds on mute:', e);
-        }
-      } else {
-        if (ctx.state !== 'running') ctx.resume();
-        // Optionally restart ambient loops when unmuting
-        if (planetReady && planetAmbience && !planetAmbience.isPlaying()) {
-          planetAmbience.setLoop(true);
-          planetAmbience.setVolume(1);
-          planetAmbience.play();
-        }
-        if (ringsReady && ringsAmbience && !ringsAmbience.isPlaying()) {
-          ringsAmbience.setLoop(true);
-          ringsAmbience.setVolume(1);
-          ringsAmbience.play();
-        }
+    if (!audioStarted || isMuted) {
+      if (planetReady && ringsReady) {
+        startAllAmbience();
       }
+    } else {
+      stopAllAmbience();
     }
-
-    const btn = document.getElementById('sound-toggle');
-    if (btn) btn.textContent = `Sound: ${audioStarted && !isMuted ? 'On' : 'Off'}`;
   } catch (e) {
     console.warn('Sound toggle failed:', e);
   }
